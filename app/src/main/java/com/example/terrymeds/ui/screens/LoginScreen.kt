@@ -91,13 +91,11 @@ fun LoginScreen(
 
         Button(
             onClick = {
-                // Validaciones básicas
                 if (email.isBlank() || password.isBlank()) {
                     loginError = "Correo y contraseña no pueden estar vacíos."
                     return@Button
                 }
 
-                // Llamar a la función de login de UserManager
                 val loggedInUser = UserManager.loginUser(email.trim(), password)
 
                 if (loggedInUser != null) {

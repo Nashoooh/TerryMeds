@@ -24,22 +24,20 @@ import com.example.terrymeds.data.UserManager
 import com.example.terrymeds.ui.theme.TerryMedsTheme
 import kotlinx.coroutines.launch
 
-// Enum para manejar los pasos de la pantalla
 private enum class ResetPasswordStep {
-    ENTER_EMAIL, // Paso para introducir y validar el email
-    RESET_PASSWORD // Paso para introducir la nueva contraseña
+    ENTER_EMAIL,
+    RESET_PASSWORD
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResetPasswordScreen(
     onNavigateToLogin: () -> Unit,
-    // onBack: () -> Unit // Puedes añadir esto si necesitas una navegación "Atrás" general
 ) {
     var currentStep by remember { mutableStateOf(ResetPasswordStep.ENTER_EMAIL) }
     var emailInput by remember { mutableStateOf("") }
     var emailError by remember { mutableStateOf<String?>(null) }
-    var verifiedUserEmail by remember { mutableStateOf<String?>(null) } // Guardará el email validado
+    var verifiedUserEmail by remember { mutableStateOf<String?>(null) }
 
     var newPassword by remember { mutableStateOf("") }
     var newPasswordVisible by remember { mutableStateOf(false) }
@@ -73,12 +71,6 @@ fun ResetPasswordScreen(
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
                         }
                     }
-                    // Si necesitaras un onBack general para salir de esta pantalla, lo gestionarías aquí
-                    // else if (onBack != null) {
-                    //     IconButton(onClick = onBack) {
-                    //         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Salir")
-                    //     }
-                    // }
                 }
             )
         }
@@ -105,10 +97,10 @@ fun ResetPasswordScreen(
                             emailError = "El campo de email no puede estar vacío."
                             return@EmailVerificationStep
                         }
-                        // Lógica para verificar el email
+
                         val user = UserManager.findUserByEmail(emailInput.trim())
                         if (user != null) {
-                            verifiedUserEmail = user.email // Guardar el email con el casing correcto de la BD
+                            verifiedUserEmail = user.email
                             currentStep = ResetPasswordStep.RESET_PASSWORD
                             emailError = null
                         } else {
@@ -173,9 +165,8 @@ fun ResetPasswordScreen(
                         }
                     )
                 } ?: run {
-                    // Fallback si verifiedUserEmail es null, aunque no debería ocurrir si la lógica es correcta
                     Text("Error: Email no verificado. Por favor, vuelve atrás.")
-                    currentStep = ResetPasswordStep.ENTER_EMAIL // Forzar volver al paso de email
+                    currentStep = ResetPasswordStep.ENTER_EMAIL
                 }
             }
         }
@@ -300,11 +291,10 @@ private fun NewPasswordStep(
 @Composable
 fun ResetPasswordScreen_EnterEmailPreview() {
     TerryMedsTheme {
-        // Para simular el estado inicial, forzamos el currentStep en una variable local para la preview
+
         var currentStep by remember { mutableStateOf(ResetPasswordStep.ENTER_EMAIL) }
         var emailInput by remember { mutableStateOf("") }
         var emailError by remember { mutableStateOf<String?>(null) }
-        // ... (otros estados si es necesario para que compile la preview del paso 1)
 
         Scaffold(topBar = { TopAppBar(title = { Text("Verificar Email") }) }) { padding ->
             Column(Modifier.padding(padding).padding(16.dp).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -315,14 +305,13 @@ fun ResetPasswordScreen_EnterEmailPreview() {
                         emailError = emailError,
                         onVerifyEmail = {
                             if (emailInput == "test@example.com") {
-                                currentStep = ResetPasswordStep.RESET_PASSWORD // Simula éxito
+                                currentStep = ResetPasswordStep.RESET_PASSWORD
                             } else {
                                 emailError = "Email no encontrado (preview)"
                             }
                         }
                     )
                 } else {
-                    // Solo para que la preview compile, podrías mostrar el paso 2 aquí también.
                     Text("Simulando paso de reseteo de contraseña...")
                 }
             }
@@ -355,7 +344,6 @@ fun ResetPasswordScreen_ResetFormPreview() {
     }
 }
 
-// Preview principal que puede ser más compleja de manejar con estados internos
 @Preview(showBackground = true, name = "Full ResetPasswordScreen")
 @Composable
 fun ResetPasswordScreenFullPreview() {

@@ -1,4 +1,4 @@
-package com.example.terrymeds // CAMBIADO a com.example.terrymeds
+package com.example.terrymeds
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -82,7 +82,6 @@ fun AppNavigation() {
                         popUpTo(LOGIN_ROUTE) { inclusive = true }
                     }
                 }
-                // Si RegisterScreen necesita onShowSnackbar, asegúrate de tener Scaffold y SnackbarHostState allí.
             )
         }
 
@@ -102,7 +101,7 @@ fun AppNavigation() {
             HomeScreen(
                 firstName = firstName,
                 lastName = lastName,
-                userEmail = userEmail, // Solo estos parámetros son necesarios para HomeScreen según tu descripción
+                userEmail = userEmail,
                 onLogout = {
                     navController.navigate(LOGIN_ROUTE) {
                         popUpTo("$HOME_ROUTE/{firstName}/{lastName}/{userEmail}") { inclusive = true }

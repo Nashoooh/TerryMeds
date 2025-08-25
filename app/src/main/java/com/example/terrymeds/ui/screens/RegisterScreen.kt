@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.example.terrymeds.data.UserData
 import com.example.terrymeds.data.UserManager
 import com.example.terrymeds.ui.theme.TerryMedsTheme
-import kotlinx.coroutines.launch // Para las coroutines del Snackbar
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -47,18 +47,18 @@ fun RegisterScreen(
         } ?: "Seleccionar fecha"
     }
 
-    // Para el Snackbar
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    Scaffold( // Añadimos Scaffold para poder usar SnackbarHost
+    Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding) // Aplicar padding del Scaffold
-                .padding(16.dp), // Padding adicional para el contenido
+                .padding(innerPadding)
+                .padding(16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -179,9 +179,7 @@ fun RegisterScreen(
                             lastName = ""
                             email = ""
                             password = ""
-                            // datePickerState.selectedDateMillis = null // Opcional resetear fecha
 
-                            // Mostrar mensaje de éxito
                             scope.launch {
                                 snackbarHostState.showSnackbar(
                                     message = "Registro Exitoso",

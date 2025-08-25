@@ -1,12 +1,9 @@
 package com.example.terrymeds.data
 
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.ui.semantics.password
-import com.example.terrymeds.data.UserData
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
-import java.util.TimeZone
+
 
 object UserManager {
     private val userList = mutableStateListOf<UserData>()
@@ -95,7 +92,7 @@ object UserManager {
     }
 
     fun getAllUsers(): List<UserData> {
-        return userList.toList() // Devuelve una copia inmutable para evitar modificaciones externas directas
+        return userList.toList()
     }
 
     fun updateUser(updatedUser: UserData): Boolean {
