@@ -65,25 +65,32 @@ fun ResetPasswordScreen(
     LaunchedEffect(currentStep) {
     }
 
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(screenTitle) },
                 navigationIcon = {
-                    if (currentStep == ResetPasswordStep.RESET_PASSWORD) {
-                        IconButton(onClick = {
+                    IconButton(onClick = {
+                        if (currentStep == ResetPasswordStep.RESET_PASSWORD) {
                             currentStep = ResetPasswordStep.ENTER_EMAIL
                             passwordResetError = null
                             newPassword = ""
                             confirmPassword = ""
                             emailError = null
-                        }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver a verificación de correo"
-                            )
+                        } else {
+                            onNavigateToLogin()
                         }
+                    }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = if (currentStep == ResetPasswordStep.RESET_PASSWORD) {
+                                "Volver a verificación de correo"
+                            } else {
+                                "Volver a inicio de sesión"
+                            }
+                        )
                     }
                 }
             )
