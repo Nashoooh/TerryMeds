@@ -2,6 +2,7 @@ package com.example.terrymeds.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
@@ -13,15 +14,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.terrymeds.data.UserData
 import com.example.terrymeds.data.UserManager
-import com.example.terrymeds.ui.theme.TerryMedsTheme
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -36,17 +41,22 @@ fun RegisterScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var registrationMessage by remember { mutableStateOf<Pair<String, Boolean>?>(null) } // Pair(message, isError)
 
-    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+    val focusManager = LocalFocusManager.current
+
+    val initialDateMillis = remember {
+        null
+    }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialDateMillis)
     var showDatePickerDialog by remember { mutableStateOf(false) }
     val selectedDateInMillis = datePickerState.selectedDateMillis
 
     val formattedDate = remember(selectedDateInMillis) {
         selectedDateInMillis?.let {
             SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(it))
-        } ?: "Seleccionar fecha"
+        } ?: "Seleccionar fecha de nacimiento"
     }
-
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -64,76 +74,104 @@ fun RegisterScreen(
         ) {
             Text(
                 text = "Crear Cuenta",
-                style = MaterialTheme.typography.headlineMedium
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.semantics { heading() } // Marcar como encabezado
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             OutlinedTextField(
                 value = firstName,
-                onValueChange = { firstName = it },
+                onValueChange = { firstName = it; registrationMessage = null },
                 label = { Text("Nombre") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                modifier = Modifier.fillMaxWidth(),
+                isError = registrationMessage?.second == true && firstName.isBlank()
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = lastName,
-                onValueChange = { lastName = it },
+                onValueChange = { lastName = it; registrationMessage = null },
                 label = { Text("Apellido") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                modifier = Modifier.fillMaxWidth(),
+                isError = registrationMessage?.second == true && lastName.isBlank()
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { email = it; registrationMessage = null },
                 label = { Text("Correo Electrónico") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth()
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                modifier = Modifier.fillMaxWidth(),
+                isError = registrationMessage?.second == true && email.isBlank()
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { password = it; registrationMessage = null },
                 label = { Text("Contraseña") },
                 singleLine = true,
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 trailingIcon = {
                     val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                     val description = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña"
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(imageVector = image, description)
+                        Icon(imageVector = image, contentDescription = description)
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                isError = registrationMessage?.second == true && password.isBlank()
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = formattedDate,
-                onValueChange = { /* No editable */ },
+                onValueChange = {  },
                 label = { Text("Fecha de Nacimiento") },
                 readOnly = true,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showDatePickerDialog = true },
+                    .clickable(
+                        onClickLabel = "Abrir selector de fecha"
+                    ) { showDatePickerDialog = true },
                 trailingIcon = {
                     Icon(
                         Icons.Filled.DateRange,
-                        contentDescription = "Seleccionar fecha",
-                        modifier = Modifier.clickable { showDatePickerDialog = true }
+                        contentDescription = "Seleccionar fecha de nacimiento",
+                        modifier = Modifier.clickable(
+                            onClickLabel = "Abrir selector de fecha"
+                        ) { showDatePickerDialog = true }
                     )
-                }
+                },
+                isError = registrationMessage?.second == true && selectedDateInMillis == null
             )
 
             if (showDatePickerDialog) {
@@ -150,53 +188,43 @@ fun RegisterScreen(
                 }
             }
 
+            registrationMessage?.let { (message, isError) ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = message,
+                    color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, // Color según si es error o éxito
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                )
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
-                    if (firstName.isNotBlank() && lastName.isNotBlank() && email.isNotBlank() && password.isNotBlank() && selectedDateInMillis != null) {
-                        // Comprobar si el email ya existe
-                        if (UserManager.findUserByEmail(email.trim()) != null) {
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = "El correo electrónico ya está registrado.",
-                                    duration = SnackbarDuration.Short
-                                )
-                            }
-                        } else {
-                            val newUser = UserData(
-                                firstName = firstName.trim(),
-                                lastName = lastName.trim(),
-                                email = email.trim(),
-                                password = password,
-                                birthDate = selectedDateInMillis
-                            )
-                            UserManager.addUser(newUser)
-                            UserManager.printAllUsers()
+                    registrationMessage = null
 
-                            // Limpiar campos
-                            firstName = ""
-                            lastName = ""
-                            email = ""
-                            password = ""
+                    if (firstName.isBlank() || lastName.isBlank() || email.isBlank() || password.isBlank() || selectedDateInMillis == null) {
+                        registrationMessage = Pair("Por favor, completa todos los campos.", true)
+                        return@Button
+                    }
 
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = "Registro Exitoso",
-                                    duration = SnackbarDuration.Short
-                                )
-                            }
-                            onNavigateToLogin()
-
-                        }
+                    if (UserManager.findUserByEmail(email.trim()) != null) {
+                        registrationMessage = Pair("El correo electrónico ya está registrado.", true)
                     } else {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "Por favor, completa todos los campos.",
-                                duration = SnackbarDuration.Short
-                            )
-                        }
-                        println("Por favor, completa todos los campos, incluyendo la fecha de nacimiento.")
+                        val newUser = UserData(
+                            firstName = firstName.trim(),
+                            lastName = lastName.trim(),
+                            email = email.trim(),
+                            password = password,
+                            birthDate = selectedDateInMillis
+                        )
+                        UserManager.addUser(newUser)
+
+                        registrationMessage = Pair("Registro Exitoso. Serás redirigido.", false)
+
+                        onNavigateToLogin()
+
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -213,11 +241,4 @@ fun RegisterScreen(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun RegisterScreenPreview() {
-    TerryMedsTheme {
-        RegisterScreen()
-    }
-}
 

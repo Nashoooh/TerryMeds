@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -15,6 +16,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -48,27 +56,33 @@ fun ResetPasswordScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    val screenTitle = if (currentStep == ResetPasswordStep.ENTER_EMAIL) {
+        "Verificar Correo Electrónico"
+    } else {
+        "Restablecer Contraseña"
+    }
+
+    LaunchedEffect(currentStep) {
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        if (currentStep == ResetPasswordStep.ENTER_EMAIL) "Verificar Email"
-                        else "Restablecer Contraseña"
-                    )
-                },
+                title = { Text(screenTitle) },
                 navigationIcon = {
-                    // Mostrar flecha de atrás solo si estamos en el paso de resetear, para volver al paso de email
                     if (currentStep == ResetPasswordStep.RESET_PASSWORD) {
                         IconButton(onClick = {
                             currentStep = ResetPasswordStep.ENTER_EMAIL
-                            // Limpiar errores y campos del paso anterior
                             passwordResetError = null
                             newPassword = ""
                             confirmPassword = ""
+                            emailError = null
                         }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver a verificación de correo"
+                            )
                         }
                     }
                 }
@@ -90,14 +104,16 @@ fun ResetPasswordScreen(
             ) {
                 EmailVerificationStep(
                     email = emailInput,
-                    onEmailChange = { emailInput = it; emailError = null },
+                    onEmailChange = {
+                        emailInput = it
+                        emailError = null
+                    },
                     emailError = emailError,
                     onVerifyEmail = {
                         if (emailInput.isBlank()) {
-                            emailError = "El campo de email no puede estar vacío."
+                            emailError = "El campo de correo no puede estar vacío."
                             return@EmailVerificationStep
                         }
-
                         val user = UserManager.findUserByEmail(emailInput.trim())
                         if (user != null) {
                             verifiedUserEmail = user.email
@@ -115,26 +131,30 @@ fun ResetPasswordScreen(
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
-                // Solo mostrar este paso si verifiedUserEmail no es null
                 verifiedUserEmail?.let { validEmail ->
                     NewPasswordStep(
                         userEmail = validEmail,
                         newPassword = newPassword,
-                        onNewPasswordChange = { newPassword = it; passwordResetError = null },
+                        onNewPasswordChange = {
+                            newPassword = it
+                            passwordResetError = null
+                        },
                         newPasswordVisible = newPasswordVisible,
                         onNewPasswordVisibilityChange = { newPasswordVisible = !newPasswordVisible },
                         confirmPassword = confirmPassword,
-                        onConfirmPasswordChange = { confirmPassword = it; passwordResetError = null },
+                        onConfirmPasswordChange = {
+                            confirmPassword = it
+                            passwordResetError = null
+                        },
                         confirmPasswordVisible = confirmPasswordVisible,
                         onConfirmPasswordVisibilityChange = { confirmPasswordVisible = !confirmPasswordVisible },
                         passwordError = passwordResetError,
                         onResetPassword = {
-                            // Validaciones
                             if (newPassword.isBlank() || confirmPassword.isBlank()) {
                                 passwordResetError = "Los campos de contraseña no pueden estar vacíos."
                                 return@NewPasswordStep
                             }
-                            if (newPassword.length < 6) { // Ejemplo
+                            if (newPassword.length < 6) {
                                 passwordResetError = "La contraseña debe tener al menos 6 caracteres."
                                 return@NewPasswordStep
                             }
@@ -147,10 +167,9 @@ fun ResetPasswordScreen(
                             if (success) {
                                 scope.launch {
                                     snackbarHostState.showSnackbar(
-                                        message = "Contraseña restablecida con éxito.",
-                                        duration = SnackbarDuration.Short
+                                        message = "Contraseña restablecida con éxito. Serás redirigido.",
+                                        duration = SnackbarDuration.Long
                                     )
-                                    kotlinx.coroutines.delay(1L)
                                 }
                                 onNavigateToLogin()
                             } else {
@@ -165,8 +184,14 @@ fun ResetPasswordScreen(
                         }
                     )
                 } ?: run {
-                    Text("Error: Email no verificado. Por favor, vuelve atrás.")
-                    currentStep = ResetPasswordStep.ENTER_EMAIL
+                    Text(
+                        "Error: Correo electrónico no verificado. Por favor, vuelve atrás.",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }
+                    )
+                    LaunchedEffect(Unit) {
+                        currentStep = ResetPasswordStep.ENTER_EMAIL
+                    }
                 }
             }
         }
@@ -180,22 +205,35 @@ private fun EmailVerificationStep(
     emailError: String?,
     onVerifyEmail: () -> Unit
 ) {
+    val focusManager = LocalFocusManager.current
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            "Introduce tu correo electrónico para restablecer tu contraseña.",
+            text = "Introduce tu correo electrónico para encontrar tu cuenta.",
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 24.dp)
+            modifier = Modifier
+                .padding(bottom = 24.dp)
+                .semantics { heading() }
         )
         OutlinedTextField(
             value = email,
             onValueChange = onEmailChange,
             label = { Text("Correo Electrónico") },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    focusManager.clearFocus()
+                    onVerifyEmail()
+                }
+            ),
             isError = emailError != null,
             modifier = Modifier.fillMaxWidth()
         )
@@ -203,13 +241,18 @@ private fun EmailVerificationStep(
             Text(
                 text = it,
                 color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 8.dp)
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite }
             )
         }
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onVerifyEmail, modifier = Modifier.fillMaxWidth()) {
-            Text("Verificar Email")
+        Button(
+            onClick = onVerifyEmail,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Verificar Correo")
         }
     }
 }
@@ -228,6 +271,8 @@ private fun NewPasswordStep(
     passwordError: String?,
     onResetPassword: () -> Unit
 ) {
+    val focusManager = LocalFocusManager.current
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -236,7 +281,9 @@ private fun NewPasswordStep(
         Text(
             text = "Crea una nueva contraseña para\n$userEmail",
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 24.dp)
+            modifier = Modifier
+                .padding(bottom = 24.dp)
+                .semantics { heading() }
         )
         OutlinedTextField(
             value = newPassword,
@@ -244,11 +291,18 @@ private fun NewPasswordStep(
             label = { Text("Nueva Contraseña") },
             singleLine = true,
             visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Next
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+            ),
             trailingIcon = {
                 val image = if (newPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                val description = if (newPasswordVisible) "Ocultar nueva contraseña" else "Mostrar nueva contraseña"
                 IconButton(onClick = onNewPasswordVisibilityChange) {
-                    Icon(imageVector = image, contentDescription = if (newPasswordVisible) "Ocultar" else "Mostrar")
+                    Icon(imageVector = image, contentDescription = description)
                 }
             },
             isError = passwordError != null,
@@ -261,11 +315,21 @@ private fun NewPasswordStep(
             label = { Text("Confirmar Nueva Contraseña") },
             singleLine = true,
             visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    focusManager.clearFocus()
+                    onResetPassword()
+                }
+            ),
             trailingIcon = {
                 val image = if (confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                val description = if (confirmPasswordVisible) "Ocultar confirmación de contraseña" else "Mostrar confirmación de contraseña"
                 IconButton(onClick = onConfirmPasswordVisibilityChange) {
-                    Icon(imageVector = image, contentDescription = if (confirmPasswordVisible) "Ocultar" else "Mostrar")
+                    Icon(imageVector = image, contentDescription = description)
                 }
             },
             isError = passwordError != null,
@@ -275,38 +339,50 @@ private fun NewPasswordStep(
             Text(
                 text = it,
                 color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 8.dp)
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite }
             )
         }
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onResetPassword, modifier = Modifier.fillMaxWidth()) {
-            Text("Guardar Contraseña")
+        Button(
+            onClick = onResetPassword,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Guardar Nueva Contraseña")
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, name = "Step 1: Enter Email")
 @Composable
 fun ResetPasswordScreen_EnterEmailPreview() {
     TerryMedsTheme {
-
         var currentStep by remember { mutableStateOf(ResetPasswordStep.ENTER_EMAIL) }
-        var emailInput by remember { mutableStateOf("") }
-        var emailError by remember { mutableStateOf<String?>(null) }
+        var emailInput by remember { mutableStateOf("test@example.com") }
+        var emailError by remember { mutableStateOf<String?>("Email no encontrado (preview)") }
 
-        Scaffold(topBar = { TopAppBar(title = { Text("Verificar Email") }) }) { padding ->
-            Column(Modifier.padding(padding).padding(16.dp).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Scaffold(topBar = { TopAppBar(title = { Text("Verificar Correo Electrónico") }) }) { padding ->
+            Column(
+                Modifier
+                    .padding(padding)
+                    .padding(16.dp)
+                    .fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 if (currentStep == ResetPasswordStep.ENTER_EMAIL) {
                     EmailVerificationStep(
                         email = emailInput,
                         onEmailChange = { emailInput = it; emailError = null },
                         emailError = emailError,
                         onVerifyEmail = {
-                            if (emailInput == "test@example.com") {
+                            if (emailInput == "test@example.com" && emailError == null) { // Solo cambiar si no hay error simulado
                                 currentStep = ResetPasswordStep.RESET_PASSWORD
-                            } else {
+                            } else if (emailError == null) {
                                 emailError = "Email no encontrado (preview)"
                             }
                         }
@@ -316,40 +392,5 @@ fun ResetPasswordScreen_EnterEmailPreview() {
                 }
             }
         }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true, name = "Step 2: Reset Password Form")
-@Composable
-fun ResetPasswordScreen_ResetFormPreview() {
-    TerryMedsTheme {
-        Scaffold(topBar = { TopAppBar(title = { Text("Restablecer Contraseña") }) }) { padding ->
-            Column(Modifier.padding(padding)) {
-                NewPasswordStep(
-                    userEmail = "usuario@example.com",
-                    newPassword = "",
-                    onNewPasswordChange = {},
-                    newPasswordVisible = false,
-                    onNewPasswordVisibilityChange = {},
-                    confirmPassword = "",
-                    onConfirmPasswordChange = {},
-                    confirmPasswordVisible = false,
-                    onConfirmPasswordVisibilityChange = {},
-                    passwordError = null,
-                    onResetPassword = {}
-                )
-            }
-        }
-    }
-}
-
-@Preview(showBackground = true, name = "Full ResetPasswordScreen")
-@Composable
-fun ResetPasswordScreenFullPreview() {
-    TerryMedsTheme {
-        ResetPasswordScreen(
-            onNavigateToLogin = { println("PREVIEW: Navegando a login...") }
-        )
     }
 }
