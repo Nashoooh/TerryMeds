@@ -57,12 +57,25 @@ fun HomeScreen(
         }        ) { innerPadding ->
         // Estado para forzar recomposición cuando se agreguen/eliminen medicamentos
         var refreshKey by remember { mutableIntStateOf(0) }
+        // Estado para mostrar/ocultar el formulario de agregar medicamento
+        var mostrarFormularioAgregar by remember { mutableStateOf(false) }
         
         val medicamentosActivos = remember(userEmail, refreshKey) {
             userEmail?.let { 
                 MedicamentoManager.getActiveMedicamentosByUserEmail(it) 
             } ?: emptyList()
         }
+
+        if (mostrarFormularioAgregar && userEmail != null) {
+            AgregarMedicamentoScreen(
+                userEmail = userEmail,
+                onNavigateBack = { mostrarFormularioAgregar = false },
+                onMedicamentoAgregado = {
+                    mostrarFormularioAgregar = false
+                    refreshKey++
+                }
+            )
+        } else {
         
         LazyColumn(
             modifier = Modifier
@@ -124,25 +137,7 @@ fun HomeScreen(
                     // Botón para agregar medicamento
                     FilledTonalButton(
                         onClick = { 
-                            userEmail?.let { email ->
-                                // Agregar un medicamento de ejemplo
-                                val nuevoMedicamento = MedicamentoUsuario(
-                                    userEmail = email,
-                                    nombreMedicamento = "Nuevo Medicamento",
-                                    formaFarmaceutica = FormaFarmaceutica.COMPRIMIDO,
-                                    concentracion = "100 mg",
-                                    cantidadPorDosis = 1.0f,
-                                    unidadDosis = UnidadDosis.UNIDAD,
-                                    numeroTotalDosis = 10,
-                                    horaInicioTratamiento = HoraDelDia(12, 0),
-                                    intervaloEntreDosisHoras = 12,
-                                    instruccionesAdicionales = "Medicamento agregado desde la app",
-                                    fechaInicioTratamientoEpochDay = System.currentTimeMillis() / (24 * 60 * 60 * 1000),
-                                    activo = true
-                                )
-                                MedicamentoManager.addMedicamento(nuevoMedicamento)
-                                refreshKey++ // Forzar recomposición
-                            }
+                            mostrarFormularioAgregar = true
                         },
                         modifier = Modifier.size(40.dp),
                         contentPadding = PaddingValues(0.dp)
@@ -202,6 +197,7 @@ fun HomeScreen(
                 }
             }
         }
+        } // Cierre del else
     }
 }
 
@@ -310,16 +306,39 @@ fun MedicamentoCard(
             }
             
             // Días restantes del tratamiento
-            medicamento.numeroTotalDosis?.let { totalDosis ->
+            Spacer(modifier = Modifier.height(8.dp))
+            if (medicamento.numeroTotalDosis != null) {
                 val diasRestantes = MedicamentoManager.getDiasRestantesTratamiento(medicamento)
-                diasRestantes?.let { dias ->
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = if (dias > 0) "📅 $dias días restantes" else "⚠️ Tratamiento completado",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (dias > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                    )
+                when {
+                    diasRestantes == null -> {
+                        Text(
+                            text = "📊 Duración no calculable",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    diasRestantes > 0 -> {
+                        val textoRestante = if (diasRestantes == 1) "$diasRestantes día restante" else "$diasRestantes días restantes"
+                        Text(
+                            text = "📅 $textoRestante",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    else -> {
+                        Text(
+                            text = "⚠️ Tratamiento completado",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
+            } else {
+                Text(
+                    text = "📊 Tratamiento continuo",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

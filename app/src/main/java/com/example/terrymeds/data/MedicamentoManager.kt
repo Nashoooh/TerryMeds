@@ -68,6 +68,13 @@ object MedicamentoManager {
     fun addMedicamento(medicamento: MedicamentoUsuario) {
         medicamentosList.add(medicamento)
         println("MedicamentoManager: Medicamento añadido: ${medicamento.nombreMedicamento} para ${medicamento.userEmail}")
+        println("  - Total dosis: ${medicamento.numeroTotalDosis}")
+        println("  - Fecha inicio: ${medicamento.fechaInicioTratamientoEpochDay}")
+        println("  - Intervalo: ${medicamento.intervaloEntreDosisHoras}h")
+        
+        // Debug inmediato del cálculo de días restantes
+        val diasRestantes = getDiasRestantesTratamiento(medicamento)
+        println("  - Días restantes calculados: $diasRestantes")
     }
 
     fun getMedicamentosByUserEmail(userEmail: String): List<MedicamentoUsuario> {
@@ -130,21 +137,33 @@ object MedicamentoManager {
         return medicamentosList.toList()
     }
 
-    // Función auxiliar para calcular días restantes del tratamiento (simplificada)
+    // Función auxiliar para calcular días restantes del tratamiento (mejorada)
     fun getDiasRestantesTratamiento(medicamento: MedicamentoUsuario): Int? {
-        if (medicamento.numeroTotalDosis == null) return null
+        val totalDosis = medicamento.numeroTotalDosis ?: return null
         
-        val today = System.currentTimeMillis() / (24 * 60 * 60 * 1000)
-        val diasTranscurridos = (today - medicamento.fechaInicioTratamientoEpochDay).toInt()
-        val dosisIntervaloEnDias = medicamento.intervaloEntreDosisHoras / 24.0
-        val dosisConsumidas = (diasTranscurridos / dosisIntervaloEnDias).toInt()
-        val dosisRestantes = medicamento.numeroTotalDosis - dosisConsumidas
+        val todayEpoch = System.currentTimeMillis() / (24 * 60 * 60 * 1000)
+        val diasTranscurridos = (todayEpoch - medicamento.fechaInicioTratamientoEpochDay).toInt()
         
-        return if (dosisRestantes > 0) {
-            (dosisRestantes * dosisIntervaloEnDias).toInt()
+        // Calcular cuántas dosis se han tomado basándose en los días transcurridos
+        val dosisPorDia = 24.0 / medicamento.intervaloEntreDosisHoras
+        val dosisConsumidas = (diasTranscurridos * dosisPorDia).toInt().coerceAtLeast(0)
+        val dosisRestantes = (totalDosis - dosisConsumidas).coerceAtLeast(0)
+        
+        // Calcular días restantes basado en las dosis restantes
+        val diasRestantes = if (dosisRestantes > 0) {
+            (dosisRestantes / dosisPorDia).toInt().coerceAtLeast(1)
         } else {
             0
         }
+        
+        println("Debug ${medicamento.nombreMedicamento}:")
+        println("  - Días transcurridos: $diasTranscurridos")
+        println("  - Dosis por día: $dosisPorDia")
+        println("  - Dosis consumidas: $dosisConsumidas")
+        println("  - Dosis restantes: $dosisRestantes")
+        println("  - Días restantes: $diasRestantes")
+        
+        return diasRestantes
     }
 
     // Función simple para obtener la próxima hora de dosis
