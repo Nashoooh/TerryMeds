@@ -3,9 +3,11 @@ package com.example.terrymeds.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons // Necesario para el ícono de ejemplo
-import androidx.compose.material.icons.filled.ExitToApp // Ícono de ejemplo para logout
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.terrymeds.data.MedicamentoManager
 import com.example.terrymeds.data.MedicamentoUsuario
+import com.example.terrymeds.data.FormaFarmaceutica
+import com.example.terrymeds.data.UnidadDosis
+import com.example.terrymeds.data.HoraDelDia
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,9 +55,14 @@ fun HomeScreen(
                  }
             )
         }        ) { innerPadding ->
-        val medicamentosActivos = userEmail?.let { 
-            MedicamentoManager.getActiveMedicamentosByUserEmail(it) 
-        } ?: emptyList()
+        // Estado para forzar recomposición cuando se agreguen/eliminen medicamentos
+        var refreshKey by remember { mutableIntStateOf(0) }
+        
+        val medicamentosActivos = remember(userEmail, refreshKey) {
+            userEmail?.let { 
+                MedicamentoManager.getActiveMedicamentosByUserEmail(it) 
+            } ?: emptyList()
+        }
         
         LazyColumn(
             modifier = Modifier
@@ -92,19 +102,57 @@ fun HomeScreen(
                 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Medication,
-                        contentDescription = "Medicamentos",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Mis Medicamentos Activos",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Medication,
+                            contentDescription = "Medicamentos",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Mis Medicamentos Activos",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    // Botón para agregar medicamento
+                    FilledTonalButton(
+                        onClick = { 
+                            userEmail?.let { email ->
+                                // Agregar un medicamento de ejemplo
+                                val nuevoMedicamento = MedicamentoUsuario(
+                                    userEmail = email,
+                                    nombreMedicamento = "Nuevo Medicamento",
+                                    formaFarmaceutica = FormaFarmaceutica.COMPRIMIDO,
+                                    concentracion = "100 mg",
+                                    cantidadPorDosis = 1.0f,
+                                    unidadDosis = UnidadDosis.UNIDAD,
+                                    numeroTotalDosis = 10,
+                                    horaInicioTratamiento = HoraDelDia(12, 0),
+                                    intervaloEntreDosisHoras = 12,
+                                    instruccionesAdicionales = "Medicamento agregado desde la app",
+                                    fechaInicioTratamientoEpochDay = System.currentTimeMillis() / (24 * 60 * 60 * 1000),
+                                    activo = true
+                                )
+                                MedicamentoManager.addMedicamento(nuevoMedicamento)
+                                refreshKey++ // Forzar recomposición
+                            }
+                        },
+                        modifier = Modifier.size(40.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Agregar medicamento",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -134,7 +182,13 @@ fun HomeScreen(
                 }
             } else {
                 items(medicamentosActivos) { medicamento ->
-                    MedicamentoCard(medicamento = medicamento)
+                    MedicamentoCard(
+                        medicamento = medicamento,
+                        onDelete = { medicamentoId ->
+                            MedicamentoManager.deleteMedicamento(medicamentoId)
+                            refreshKey++ // Forzar recomposición
+                        }
+                    )
                 }
             }
 
@@ -152,7 +206,10 @@ fun HomeScreen(
 }
 
 @Composable
-fun MedicamentoCard(medicamento: MedicamentoUsuario) {
+fun MedicamentoCard(
+    medicamento: MedicamentoUsuario,
+    onDelete: (String) -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -162,23 +219,47 @@ fun MedicamentoCard(medicamento: MedicamentoUsuario) {
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(16.dp)
         ) {
-            // Nombre y concentración
-            Text(
-                text = medicamento.nombreMedicamento,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            
-            medicamento.concentracion?.let { concentracion ->
-                Text(
-                    text = concentracion,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            // Header con nombre y botón de eliminar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Nombre y concentración
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = medicamento.nombreMedicamento,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    medicamento.concentracion?.let { concentracion ->
+                        Text(
+                            text = concentracion,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
+                // Botón de eliminar
+                IconButton(
+                    onClick = { onDelete(medicamento.id) },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Delete,
+                        contentDescription = "Eliminar medicamento",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -200,7 +281,7 @@ fun MedicamentoCard(medicamento: MedicamentoUsuario) {
             
             Spacer(modifier = Modifier.height(4.dp))
             
-            // Intervalo y hora de inicio
+            // Intervalo y próxima dosis
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -209,9 +290,12 @@ fun MedicamentoCard(medicamento: MedicamentoUsuario) {
                     text = "Cada ${medicamento.intervaloEntreDosisHoras}h",
                     style = MaterialTheme.typography.bodySmall
                 )
+                val proximaDosis = MedicamentoManager.getProximaHoraDosis(medicamento)
                 Text(
-                    text = "Inicio: ${medicamento.horaInicioTratamiento}",
-                    style = MaterialTheme.typography.bodySmall
+                    text = "Próxima dosis: $proximaDosis",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             

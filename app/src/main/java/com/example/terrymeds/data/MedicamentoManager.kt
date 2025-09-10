@@ -147,6 +147,31 @@ object MedicamentoManager {
         }
     }
 
+    // Función simple para obtener la próxima hora de dosis
+    fun getProximaHoraDosis(medicamento: MedicamentoUsuario): HoraDelDia {
+        val horasDesdeInicio = medicamento.horaInicioTratamiento.hora
+        val minutosDesdeInicio = medicamento.horaInicioTratamiento.minuto
+        val intervalohoras = medicamento.intervaloEntreDosisHoras
+        
+        // Obtener hora actual usando Calendar (compatible con Android)
+        val calendar = java.util.Calendar.getInstance()
+        val horaActual = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+        val minutoActual = calendar.get(java.util.Calendar.MINUTE)
+        
+        var proximaHora = horasDesdeInicio
+        var proximoMinuto = minutosDesdeInicio
+        
+        // Buscar la próxima hora de dosis
+        while (proximaHora < horaActual || (proximaHora == horaActual && proximoMinuto <= minutoActual)) {
+            proximaHora += intervalohoras
+            if (proximaHora >= 24) {
+                proximaHora -= 24
+            }
+        }
+        
+        return HoraDelDia(proximaHora, proximoMinuto)
+    }
+
     fun printAllMedicamentos() {
         println("---- Lista Actual de Medicamentos (MedicamentoManager) ----")
         if (medicamentosList.isEmpty()) {
