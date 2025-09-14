@@ -11,70 +11,53 @@ object MedicamentoManager {
     }
 
     private fun createDefaultMedicamentos() {
-        val defaultUserEmail = "nacho@correo.com"
-        val today = System.currentTimeMillis() / (24 * 60 * 60 * 1000)
+        try {
+            val defaultUserEmail = "nacho@correo.com"
+            val today = System.currentTimeMillis() / (24 * 60 * 60 * 1000)
 
-        val medicamentosEjemplo = listOf(
-            MedicamentoUsuario(
-                userEmail = defaultUserEmail,
-                nombreMedicamento = "Paracetamol",
-                formaFarmaceutica = FormaFarmaceutica.COMPRIMIDO,
-                concentracion = "500 mg",
-                cantidadPorDosis = 1.0f,
-                unidadDosis = UnidadDosis.UNIDAD,
-                numeroTotalDosis = 20,
-                horaInicioTratamiento = HoraDelDia(8, 0),
-                intervaloEntreDosisHoras = 8,
-                instruccionesAdicionales = "Tomar con alimentos",
-                fechaInicioTratamientoEpochDay = today,
-                activo = true
-            ),
-            MedicamentoUsuario(
-                userEmail = defaultUserEmail,
-                nombreMedicamento = "Vitamina D3",
-                formaFarmaceutica = FormaFarmaceutica.CAPSULA,
-                concentracion = "1000 UI",
-                cantidadPorDosis = 1.0f,
-                unidadDosis = UnidadDosis.UNIDAD,
-                numeroTotalDosis = 30,
-                horaInicioTratamiento = HoraDelDia(9, 0),
-                intervaloEntreDosisHoras = 24,
-                instruccionesAdicionales = "Tomar con el desayuno",
-                fechaInicioTratamientoEpochDay = today - 5, // Comenzó hace 5 días
-                activo = true
-            ),
-            MedicamentoUsuario(
-                userEmail = defaultUserEmail,
-                nombreMedicamento = "Jarabe para la tos",
-                formaFarmaceutica = FormaFarmaceutica.JARABE,
-                concentracion = "10 ml",
-                cantidadPorDosis = 10.0f,
-                unidadDosis = UnidadDosis.ML,
-                numeroTotalDosis = 15,
-                horaInicioTratamiento = HoraDelDia(20, 0),
-                intervaloEntreDosisHoras = 12,
-                instruccionesAdicionales = "Agitar antes de usar",
-                fechaInicioTratamientoEpochDay = today - 2, // Comenzó hace 2 días
-                activo = true
+            val medicamentosEjemplo = listOf(
+                MedicamentoUsuario(
+                    userEmail = defaultUserEmail,
+                    nombreMedicamento = "Paracetamol",
+                    formaFarmaceutica = FormaFarmaceutica.COMPRIMIDO,
+                    concentracion = "500 mg",
+                    cantidadPorDosis = 1.0f,
+                    unidadDosis = UnidadDosis.UNIDAD,
+                    numeroTotalDosis = 20,
+                    horaInicioTratamiento = HoraDelDia(8, 0),
+                    intervaloEntreDosisHoras = 8,
+                    instruccionesAdicionales = "Tomar con alimentos",
+                    fechaInicioTratamientoEpochDay = today,
+                    activo = true
+                ),
+                MedicamentoUsuario(
+                    userEmail = defaultUserEmail,
+                    nombreMedicamento = "Vitamina D3",
+                    formaFarmaceutica = FormaFarmaceutica.CAPSULA,
+                    concentracion = "1000 UI",
+                    cantidadPorDosis = 1.0f,
+                    unidadDosis = UnidadDosis.UNIDAD,
+                    numeroTotalDosis = 30,
+                    horaInicioTratamiento = HoraDelDia(9, 0),
+                    intervaloEntreDosisHoras = 24,
+                    instruccionesAdicionales = "Tomar con el desayuno",
+                    fechaInicioTratamientoEpochDay = today - 5, // Comenzó hace 5 días
+                    activo = true
+                )
             )
-        )
 
-        medicamentosEjemplo.forEach { medicamento ->
-            medicamentosList.add(medicamento)
-            println("MedicamentoManager: Medicamento de ejemplo añadido: ${medicamento.nombreMedicamento}")
+            medicamentosEjemplo.forEach { medicamento ->
+                medicamentosList.add(medicamento)
+            }
+            println("MedicamentoManager: ${medicamentosEjemplo.size} medicamentos de ejemplo creados")
+        } catch (e: Exception) {
+            println("MedicamentoManager: Error creando medicamentos de ejemplo: ${e.message}")
         }
     }
 
     fun addMedicamento(medicamento: MedicamentoUsuario) {
         medicamentosList.add(medicamento)
         println("MedicamentoManager: Medicamento añadido: ${medicamento.nombreMedicamento} para ${medicamento.userEmail}")
-        println("  - Total dosis: ${medicamento.numeroTotalDosis}")
-        println("  - Fecha inicio: ${medicamento.fechaInicioTratamientoEpochDay}")
-        println("  - Intervalo: ${medicamento.intervaloEntreDosisHoras}h")
-        
-        // Debug inmediato del cálculo de días restantes
-        val diasRestantes = getDiasRestantesTratamiento(medicamento)
-        println("  - Días restantes calculados: $diasRestantes")
     }
 
     fun getMedicamentosByUserEmail(userEmail: String): List<MedicamentoUsuario> {
@@ -139,56 +122,66 @@ object MedicamentoManager {
 
     // Función auxiliar para calcular días restantes del tratamiento (mejorada)
     fun getDiasRestantesTratamiento(medicamento: MedicamentoUsuario): Int? {
-        val totalDosis = medicamento.numeroTotalDosis ?: return null
-        
-        val todayEpoch = System.currentTimeMillis() / (24 * 60 * 60 * 1000)
-        val diasTranscurridos = (todayEpoch - medicamento.fechaInicioTratamientoEpochDay).toInt()
-        
-        // Calcular cuántas dosis se han tomado basándose en los días transcurridos
-        val dosisPorDia = 24.0 / medicamento.intervaloEntreDosisHoras
-        val dosisConsumidas = (diasTranscurridos * dosisPorDia).toInt().coerceAtLeast(0)
-        val dosisRestantes = (totalDosis - dosisConsumidas).coerceAtLeast(0)
-        
-        // Calcular días restantes basado en las dosis restantes
-        val diasRestantes = if (dosisRestantes > 0) {
-            (dosisRestantes / dosisPorDia).toInt().coerceAtLeast(1)
-        } else {
-            0
+        return try {
+            val totalDosis = medicamento.numeroTotalDosis ?: return null
+            
+            if (totalDosis <= 0 || medicamento.intervaloEntreDosisHoras <= 0) {
+                return null
+            }
+            
+            val todayEpoch = System.currentTimeMillis() / (24 * 60 * 60 * 1000)
+            val diasTranscurridos = (todayEpoch - medicamento.fechaInicioTratamientoEpochDay).toInt().coerceAtLeast(0)
+            
+            // Calcular cuántas dosis se han tomado basándose en los días transcurridos
+            val dosisPorDia = 24.0 / medicamento.intervaloEntreDosisHoras
+            val dosisConsumidas = (diasTranscurridos * dosisPorDia).toInt().coerceAtLeast(0)
+            val dosisRestantes = (totalDosis - dosisConsumidas).coerceAtLeast(0)
+            
+            // Calcular días restantes basado en las dosis restantes
+            if (dosisRestantes > 0 && dosisPorDia > 0) {
+                (dosisRestantes / dosisPorDia).toInt().coerceAtLeast(1)
+            } else {
+                0
+            }
+        } catch (e: Exception) {
+            null
         }
-        
-        println("Debug ${medicamento.nombreMedicamento}:")
-        println("  - Días transcurridos: $diasTranscurridos")
-        println("  - Dosis por día: $dosisPorDia")
-        println("  - Dosis consumidas: $dosisConsumidas")
-        println("  - Dosis restantes: $dosisRestantes")
-        println("  - Días restantes: $diasRestantes")
-        
-        return diasRestantes
     }
 
     // Función simple para obtener la próxima hora de dosis
     fun getProximaHoraDosis(medicamento: MedicamentoUsuario): HoraDelDia {
-        val horasDesdeInicio = medicamento.horaInicioTratamiento.hora
-        val minutosDesdeInicio = medicamento.horaInicioTratamiento.minuto
-        val intervalohoras = medicamento.intervaloEntreDosisHoras
-        
-        // Obtener hora actual usando Calendar (compatible con Android)
-        val calendar = java.util.Calendar.getInstance()
-        val horaActual = calendar.get(java.util.Calendar.HOUR_OF_DAY)
-        val minutoActual = calendar.get(java.util.Calendar.MINUTE)
-        
-        var proximaHora = horasDesdeInicio
-        var proximoMinuto = minutosDesdeInicio
-        
-        // Buscar la próxima hora de dosis
-        while (proximaHora < horaActual || (proximaHora == horaActual && proximoMinuto <= minutoActual)) {
-            proximaHora += intervalohoras
-            if (proximaHora >= 24) {
-                proximaHora -= 24
+        return try {
+            val horasDesdeInicio = medicamento.horaInicioTratamiento.hora
+            val minutosDesdeInicio = medicamento.horaInicioTratamiento.minuto
+            val intervalohoras = medicamento.intervaloEntreDosisHoras
+            
+            // Validar datos de entrada
+            if (intervalohoras <= 0) {
+                return medicamento.horaInicioTratamiento
             }
+            
+            // Obtener hora actual usando Calendar (compatible con Android)
+            val calendar = java.util.Calendar.getInstance()
+            val horaActual = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+            val minutoActual = calendar.get(java.util.Calendar.MINUTE)
+            
+            var proximaHora = horasDesdeInicio
+            var proximoMinuto = minutosDesdeInicio
+            
+            // Buscar la próxima hora de dosis
+            var iterations = 0
+            while ((proximaHora < horaActual || (proximaHora == horaActual && proximoMinuto <= minutoActual)) && iterations < 100) {
+                proximaHora += intervalohoras
+                if (proximaHora >= 24) {
+                    proximaHora -= 24
+                }
+                iterations++
+            }
+            
+            HoraDelDia(proximaHora.coerceIn(0, 23), proximoMinuto.coerceIn(0, 59))
+        } catch (e: Exception) {
+            medicamento.horaInicioTratamiento
         }
-        
-        return HoraDelDia(proximaHora, proximoMinuto)
     }
 
     fun printAllMedicamentos() {

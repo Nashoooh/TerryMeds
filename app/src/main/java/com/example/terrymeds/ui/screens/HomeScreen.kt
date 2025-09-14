@@ -55,27 +55,26 @@ fun HomeScreen(
                  }
             )
         }        ) { innerPadding ->
-        // Estado para forzar recomposición cuando se agreguen/eliminen medicamentos
-        var refreshKey by remember { mutableIntStateOf(0) }
         // Estado para mostrar/ocultar el formulario de agregar medicamento
         var mostrarFormularioAgregar by remember { mutableStateOf(false) }
+        // Estado para forzar recomposición
+        var refreshTrigger by remember { mutableIntStateOf(0) }
         
-        val medicamentosActivos = remember(userEmail, refreshKey) {
-            userEmail?.let { 
-                MedicamentoManager.getActiveMedicamentosByUserEmail(it) 
-            } ?: emptyList()
-        }
-
         if (mostrarFormularioAgregar && userEmail != null) {
             AgregarMedicamentoScreen(
                 userEmail = userEmail,
                 onNavigateBack = { mostrarFormularioAgregar = false },
                 onMedicamentoAgregado = {
                     mostrarFormularioAgregar = false
-                    refreshKey++
+                    refreshTrigger++
                 }
             )
         } else {
+        
+        // Obtener medicamentos activos cada vez que cambie refreshTrigger
+        val medicamentosActivos = userEmail?.let { 
+            MedicamentoManager.getActiveMedicamentosByUserEmail(it) 
+        } ?: emptyList()
         
         LazyColumn(
             modifier = Modifier
@@ -176,12 +175,15 @@ fun HomeScreen(
                     }
                 }
             } else {
-                items(medicamentosActivos) { medicamento ->
+                items(
+                    items = medicamentosActivos,
+                    key = { medicamento -> "${medicamento.id}_$refreshTrigger" }
+                ) { medicamento ->
                     MedicamentoCard(
                         medicamento = medicamento,
                         onDelete = { medicamentoId ->
                             MedicamentoManager.deleteMedicamento(medicamentoId)
-                            refreshKey++ // Forzar recomposición
+                            refreshTrigger++ // Forzar recomposición
                         }
                     )
                 }
