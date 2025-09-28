@@ -21,7 +21,7 @@ object UserManager {
     private fun createDefaultUser(): UserData? {
         val firstName = "Ignacio"
         val lastName = "Andana"
-        val email = "nacho@correo.com"
+        val email = "nacho@correo.com" // terry@gmail.com
         val password = "Clave123"
         val birthDateString = "30/12/1992"
 

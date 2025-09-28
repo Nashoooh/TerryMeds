@@ -17,7 +17,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.terrymeds.data.MedicamentoManager
+import androidx.compose.ui.platform.LocalContext
+import com.example.terrymeds.data.sqlite.SQLiteMedicamentoManager
 import com.example.terrymeds.data.MedicamentoUsuario
 import com.example.terrymeds.data.FormaFarmaceutica
 import com.example.terrymeds.data.UnidadDosis
@@ -32,6 +33,8 @@ fun HomeScreen(
     userEmail: String?,
     onLogout: () -> Unit
 ) {
+    val context = LocalContext.current
+    val medicamentoManager = remember { SQLiteMedicamentoManager.getInstance(context) }
     Scaffold(
         topBar = {
             val appBarTitle = if (firstName != null || lastName != null) {
@@ -72,9 +75,13 @@ fun HomeScreen(
         } else {
         
         // Obtener medicamentos activos cada vez que cambie refreshTrigger
-        val medicamentosActivos = userEmail?.let { 
-            MedicamentoManager.getActiveMedicamentosByUserEmail(it) 
-        } ?: emptyList()
+        val medicamentosActivos by remember(refreshTrigger, userEmail) {
+            derivedStateOf {
+                userEmail?.let { 
+                    medicamentoManager.getActiveMedicamentosByUserEmail(it) 
+                } ?: emptyList()
+            }
+        }
         
         LazyColumn(
             modifier = Modifier
@@ -181,8 +188,9 @@ fun HomeScreen(
                 ) { medicamento ->
                     MedicamentoCard(
                         medicamento = medicamento,
+                        medicamentoManager = medicamentoManager,
                         onDelete = { medicamentoId ->
-                            MedicamentoManager.deleteMedicamento(medicamentoId)
+                            medicamentoManager.deleteMedicamento(medicamentoId)
                             refreshTrigger++ // Forzar recomposición
                         }
                     )
@@ -206,6 +214,7 @@ fun HomeScreen(
 @Composable
 fun MedicamentoCard(
     medicamento: MedicamentoUsuario,
+    medicamentoManager: SQLiteMedicamentoManager,
     onDelete: (String) -> Unit
 ) {
     Card(
@@ -288,7 +297,7 @@ fun MedicamentoCard(
                     text = "Cada ${medicamento.intervaloEntreDosisHoras}h",
                     style = MaterialTheme.typography.bodySmall
                 )
-                val proximaDosis = MedicamentoManager.getProximaHoraDosis(medicamento)
+                val proximaDosis = medicamentoManager.getProximaHoraDosis(medicamento)
                 Text(
                     text = "Próxima dosis: $proximaDosis",
                     style = MaterialTheme.typography.bodySmall,
@@ -310,7 +319,7 @@ fun MedicamentoCard(
             // Días restantes del tratamiento
             Spacer(modifier = Modifier.height(8.dp))
             if (medicamento.numeroTotalDosis != null) {
-                val diasRestantes = MedicamentoManager.getDiasRestantesTratamiento(medicamento)
+                val diasRestantes = medicamentoManager.getDiasRestantesTratamiento(medicamento)
                 when {
                     diasRestantes == null -> {
                         Text(

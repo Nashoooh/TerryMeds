@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -26,7 +27,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.terrymeds.data.UserData
-import com.example.terrymeds.data.UserManager
+import com.example.terrymeds.data.sqlite.SQLiteUserManager
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -44,6 +45,8 @@ fun RegisterScreen(
     var registrationMessage by remember { mutableStateOf<Pair<String, Boolean>?>(null) } // Pair(message, isError)
 
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val userManager = remember { SQLiteUserManager.getInstance(context) }
 
     val initialDateMillis = remember {
         null
@@ -209,7 +212,7 @@ fun RegisterScreen(
                         return@Button
                     }
 
-                    if (UserManager.findUserByEmail(email.trim()) != null) {
+                    if (userManager.findUserByEmail(email.trim()) != null) {
                         registrationMessage = Pair("El correo electrónico ya está registrado.", true)
                     } else {
                         val newUser = UserData(
@@ -219,7 +222,7 @@ fun RegisterScreen(
                             password = password,
                             birthDate = selectedDateInMillis
                         )
-                        UserManager.addUser(newUser)
+                        userManager.addUser(newUser)
 
                         registrationMessage = Pair("Registro Exitoso. Serás redirigido.", false)
 

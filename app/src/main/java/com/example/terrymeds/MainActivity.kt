@@ -18,6 +18,8 @@ import com.example.terrymeds.ui.screens.RegisterScreen
 import com.example.terrymeds.ui.screens.HomeScreen
 import com.example.terrymeds.ui.screens.ResetPasswordScreen
 import com.example.terrymeds.ui.theme.TerryMedsTheme
+import com.example.terrymeds.data.sqlite.SQLiteUserManager
+import com.example.terrymeds.data.sqlite.SQLiteMedicamentoManager
 
 // RUTAS
 private const val LOGIN_ROUTE = "login"
@@ -28,6 +30,10 @@ private const val RESET_PASSWORD_ROUTE = "reset_password"
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Inicializar SQLite managers
+        initializeSQLiteData()
+        
         setContent {
             TerryMedsTheme {
                 Surface(
@@ -38,6 +44,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+    
+    private fun initializeSQLiteData() {
+        // Inicializar el manager de usuarios con datos por defecto
+        val userManager = SQLiteUserManager.getInstance(this)
+        userManager.initializeDefaultUser()
+        
+        // Inicializar el manager de medicamentos con datos por defecto
+        val medicamentoManager = SQLiteMedicamentoManager.getInstance(this)
+        medicamentoManager.initializeDefaultMedicamentos()
     }
 }
 

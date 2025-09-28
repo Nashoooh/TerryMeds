@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -28,7 +29,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.terrymeds.data.UserManager
+import com.example.terrymeds.data.sqlite.SQLiteUserManager
 import com.example.terrymeds.ui.theme.TerryMedsTheme
 import kotlinx.coroutines.launch
 
@@ -52,6 +53,9 @@ fun ResetPasswordScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     var passwordResetError by remember { mutableStateOf<String?>(null) }
+    
+    val context = LocalContext.current
+    val userManager = remember { SQLiteUserManager.getInstance(context) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -121,7 +125,7 @@ fun ResetPasswordScreen(
                             emailError = "El campo de correo no puede estar vacío."
                             return@EmailVerificationStep
                         }
-                        val user = UserManager.findUserByEmail(emailInput.trim())
+                        val user = userManager.findUserByEmail(emailInput.trim())
                         if (user != null) {
                             verifiedUserEmail = user.email
                             currentStep = ResetPasswordStep.RESET_PASSWORD
@@ -170,7 +174,7 @@ fun ResetPasswordScreen(
                                 return@NewPasswordStep
                             }
 
-                            val success = UserManager.resetPassword(validEmail, newPassword)
+                            val success = userManager.resetPassword(validEmail, newPassword)
                             if (success) {
                                 scope.launch {
                                     snackbarHostState.showSnackbar(

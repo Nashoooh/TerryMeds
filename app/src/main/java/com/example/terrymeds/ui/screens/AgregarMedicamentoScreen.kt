@@ -16,6 +16,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.terrymeds.data.*
+import com.example.terrymeds.data.sqlite.SQLiteMedicamentoManager
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +26,8 @@ fun AgregarMedicamentoScreen(
     onNavigateBack: () -> Unit,
     onMedicamentoAgregado: () -> Unit
 ) {
+    val context = LocalContext.current
+    val medicamentoManager = remember { SQLiteMedicamentoManager.getInstance(context) }
     var nombreMedicamento by remember { mutableStateOf("") }
     var concentracion by remember { mutableStateOf("") }
     var cantidadPorDosis by remember { mutableStateOf("1") }
@@ -244,7 +248,7 @@ fun AgregarMedicamentoScreen(
                                     activo = true
                                 )
                                 
-                                MedicamentoManager.addMedicamento(nuevoMedicamento)
+                                medicamentoManager.addMedicamento(nuevoMedicamento)
                                 onMedicamentoAgregado()
                             } catch (e: Exception) {
                                 // TODO: Mostrar error al usuario

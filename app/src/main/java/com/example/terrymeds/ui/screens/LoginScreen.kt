@@ -31,7 +31,8 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.example.terrymeds.R
 import com.example.terrymeds.data.UserData
-import com.example.terrymeds.data.UserManager
+import com.example.terrymeds.data.sqlite.SQLiteUserManager
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun LoginScreen(
@@ -43,6 +44,8 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var loginError by remember { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val userManager = remember { SQLiteUserManager.getInstance(context) }
 
     val lottieCompositionResult = rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.calendar_drug))
     val lottieComposition = lottieCompositionResult.value
@@ -119,7 +122,7 @@ fun LoginScreen(
                     focusManager.clearFocus()
                     // Lógica de login (refactorizar o duplicar del botón)
                     if (email.isNotBlank() && password.isNotBlank()) {
-                        val loggedInUser = UserManager.loginUser(email.trim(), password)
+                        val loggedInUser = userManager.loginUser(email.trim(), password)
                         if (loggedInUser != null) {
                             loginError = null
                             onLoginSuccess(loggedInUser)
@@ -168,7 +171,7 @@ fun LoginScreen(
                     return@Button
                 }
 
-                val loggedInUser = UserManager.loginUser(email.trim(), password)
+                val loggedInUser = userManager.loginUser(email.trim(), password)
 
                 if (loggedInUser != null) {
                     loginError = null
