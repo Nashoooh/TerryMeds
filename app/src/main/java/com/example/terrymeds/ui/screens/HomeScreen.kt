@@ -8,6 +8,8 @@ import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +25,8 @@ import com.example.terrymeds.data.MedicamentoUsuario
 import com.example.terrymeds.data.FormaFarmaceutica
 import com.example.terrymeds.data.UnidadDosis
 import com.example.terrymeds.data.HoraDelDia
+import com.example.terrymeds.utils.rememberTTSHelper
+import com.example.terrymeds.utils.generateMedicamentoSpeechText
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +39,7 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     val medicamentoManager = remember { SQLiteMedicamentoManager.getInstance(context) }
+    val ttsHelper = rememberTTSHelper(context)
     Scaffold(
         topBar = {
             val appBarTitle = if (firstName != null || lastName != null) {
@@ -189,6 +194,7 @@ fun HomeScreen(
                     MedicamentoCard(
                         medicamento = medicamento,
                         medicamentoManager = medicamentoManager,
+                        ttsHelper = ttsHelper,
                         onDelete = { medicamentoId ->
                             medicamentoManager.deleteMedicamento(medicamentoId)
                             refreshTrigger++ // Forzar recomposición
@@ -215,6 +221,7 @@ fun HomeScreen(
 fun MedicamentoCard(
     medicamento: MedicamentoUsuario,
     medicamentoManager: SQLiteMedicamentoManager,
+    ttsHelper: com.example.terrymeds.utils.TTSHelper,
     onDelete: (String) -> Unit
 ) {
     Card(
@@ -255,17 +262,38 @@ fun MedicamentoCard(
                     }
                 }
                 
-                // Botón de eliminar
-                IconButton(
-                    onClick = { onDelete(medicamento.id) },
-                    modifier = Modifier.size(32.dp)
+                // Botones de acción
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = "Eliminar medicamento",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    // Botón de texto a voz
+                    IconButton(
+                        onClick = { 
+                            val speechText = generateMedicamentoSpeechText(medicamento)
+                            ttsHelper.speak(speechText)
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (ttsHelper.isPlaying) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
+                            contentDescription = if (ttsHelper.isPlaying) "Detener lectura" else "Leer información del medicamento",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    // Botón de eliminar
+                    IconButton(
+                        onClick = { onDelete(medicamento.id) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Eliminar medicamento",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
             
