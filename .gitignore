@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Keystore files - NUNCA subir al repositorio
+*.keystore
+*.jks
+keystore.properties

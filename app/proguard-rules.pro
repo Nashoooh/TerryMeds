@@ -5,6 +5,30 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
+# Mantener clases de datos para SQLite
+-keep class com.example.terrymeds.data.** { *; }
+
+# Mantener enums
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# Compose rules
+-keep class androidx.compose.** { *; }
+-keep class androidx.activity.compose.** { *; }
+
+# Navigation
+-keep class androidx.navigation.** { *; }
+
+# Mantener constructores de data classes
+-keepclassmembers class * {
+    public <init>(...);
+}
+
+# SQLite
+-keep class android.database.** { *; }
+
 # If your project uses WebView with JS, uncomment the following
 # and specify the fully qualified class name to the JavaScript interface
 # class:
@@ -14,8 +38,11 @@
 
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+-keepattributes SourceFile,LineNumberTable
 
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Suprimir warnings de clases faltantes de dependencias opcionales
+-dontwarn javax.annotation.Nullable
