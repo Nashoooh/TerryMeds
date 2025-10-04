@@ -22,7 +22,7 @@ object UserManager {
         val firstName = "Ignacio"
         val lastName = "Andana"
         val email = "nacho@correo.com" // terry@gmail.com
-        val password = "Clave123"
+        val password = "Clave1234"
         val birthDateString = "30/12/1992"
 
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
